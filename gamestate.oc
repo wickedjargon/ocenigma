@@ -1,0 +1,89 @@
+import std::sv::SV
+import @position::*
+import @board::*
+
+// Section: Other
+
+
+// enum Move {
+//     RegularMove(fromPos: Position, toPos: Position),
+//     PromotionMove(fromPos: Position, toPos: Position, piece: Piece),
+//     Castle(fromPos: Position, toPos: Position),
+//     Resign,
+//     OfferDraw,
+// }
+
+enum Player {
+    White,
+    Black,
+}
+
+
+enum EnPassant {
+    False,
+    True(position: Position)
+}
+
+// Section: Board
+
+
+// Section: GameState
+
+struct GameState {
+    board: Board,
+    player: Player,
+    white_oo: bool,
+    white_ooo: bool,
+    black_oo: bool,
+    black_ooo: bool,
+    en_passant: EnPassant
+    half_moves: u64
+    full_moves: u64
+}
+
+def GameState::from_fen(string: str): GameState {
+    let sv = SV::from_str(string)
+    let fen_board = sv.chop_by_delim(' ')
+    let fen_player = sv.chop_by_delim(' ')
+    let fen_castling = sv.chop_by_delim(' ')
+    let fen_en_passant = sv.chop_by_delim(' ')
+    let half_moves = sv.chop_u64()
+    let full_moves = sv.chop_u64()
+
+    let player: Player = match fen_player {
+        "w" => White
+        "b" => Black
+        else => {assert false, "failed to parse the FEN active color." }
+    }
+
+    let en_passant = match fen_en_passant {
+        "-" => EnPassant::False
+        else => EnPassant::True(Position::from_sv(fen_en_passant))
+    }
+
+    return GameState(
+        board: Board::from_fen(fen_board),
+        player: player,
+        white_oo: fen_castling.contains('K'),
+        white_ooo: fen_castling.contains('Q'),
+        black_oo: fen_castling.contains('k'),
+        black_ooo: fen_castling.contains('q'),
+        en_passant: en_passant,
+        half_moves: half_moves,
+        full_moves: full_moves,
+    )
+
+}
+
+def GameState::new_game(): GameState {
+    return GameState::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+}
+
+def GameState::move(&this, origin: Position, destination: Position) {
+    .board.move_piece(origin, destination)
+    if .player == Black {
+        .player = White
+    } else {
+        .player = Black
+    }
+}

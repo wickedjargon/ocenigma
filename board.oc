@@ -1,0 +1,146 @@
+import std::sv::SV
+import @position::*
+
+enum Piece {
+    WhitePawn,
+    WhiteRook,
+    WhiteKnight,
+    WhiteBishop,
+    WhiteQueen,
+    WhiteKing,
+    BlackPawn,
+    BlackRook,
+    BlackKnight,
+    BlackBishop,
+    BlackQueen,
+    BlackKing,
+    EmptySquare,
+}
+
+struct Board {
+    white_pawns: u64,
+    white_rooks: u64,
+    white_knights: u64,
+    white_bishops: u64,
+    white_queens: u64,
+    white_king: u64,
+
+    black_pawns: u64,
+    black_rooks: u64,
+    black_knights: u64,
+    black_bishops: u64,
+    black_queens: u64,
+    black_king: u64
+}
+
+def Board::empty_board(): Board {
+    return Board(
+        white_pawns:   0,
+        white_rooks:   0,
+        white_knights: 0,
+        white_bishops: 0,
+        white_queens:  0,
+        white_king:    0,
+        black_pawns:   0,
+        black_rooks:   0,
+        black_knights: 0,
+        black_bishops: 0,
+        black_queens:  0,
+        black_king:    0,
+    )
+}
+
+def Board::from_fen(fen: SV): Board {
+    let board = Board::empty_board()
+    for let y = 0u64; y < 8; y++ {
+        let row = fen.chop_by_delim('/')
+        let x = 0u64
+        for piece in row.chars() {
+            if piece.is_digit() {
+                x += piece.get_digit() as u64
+                continue;
+            }
+            match piece {
+                'r' => board.place_piece(BlackRook, Position(7 - x, 7 - y)),
+                'R' => board.place_piece(WhiteRook, Position(7 - x, 7 - y)),
+                'n' => board.place_piece(BlackKnight, Position(7 - x, 7 - y)),
+                'N' => board.place_piece(WhiteKnight, Position(7 - x, 7 - y)),
+                'b' => board.place_piece(BlackBishop, Position(7 - x, 7 - y)),
+                'B' => board.place_piece(WhiteBishop, Position(7 - x, 7 - y)),
+                'q' => board.place_piece(BlackQueen, Position(7 - x, 7 - y)),
+                'Q' => board.place_piece(WhiteQueen, Position(7 - x, 7 - y)),
+                'k' => board.place_piece(BlackKing, Position(7 - x, 7 - y)),
+                'K' => board.place_piece(WhiteKing, Position(7 - x, 7 - y)),
+                'p' => board.place_piece(BlackPawn, Position(7 - x, 7 - y)),
+                'P' => board.place_piece(WhitePawn, Position(7 - x, 7 - y)),
+                else => { assert false }
+            }
+            x += 1
+        }
+    }
+    return board
+}
+
+def Board::get_piece_at_pos(&this, position: Position): Piece {
+    let mask: u64 = position.get_mask()
+    let nums = this as &u64
+    for let i = 0; i < 12; i++ {
+        if nums[i] & mask != 0 {
+            return i as Piece
+        }
+    }
+    return Piece::EmptySquare
+}
+
+def Board::move_piece(&this, origin: Position, destination: Position) {
+    let piece = .get_piece_at_pos(origin)
+    let nums = this as &u64
+    assert piece != EmptySquare
+    let value = nums[piece as u64]
+    value = value & ~origin.get_mask()
+    value = value | destination.get_mask()
+    nums[piece as u64] = value
+}
+
+def Board::place_piece(&this, piece: Piece, position: Position) {
+    let nums = this as &u64
+    let value = nums[piece as u64]
+    value = value | position.get_mask()
+    nums[piece as u64] = value
+}
+
+def Board::print_board(&this) {
+    let piece_chars = [
+        '-',
+        'P', 'R', 'N', 'B', 'Q', 'K',  // White pieces
+        'p', 'r', 'n', 'b', 'q', 'k'   // Black pieces
+    ]
+
+    // Iterate over each rank from 8 to 1
+    for let rank: u64 = 0; rank < 8; rank++ {
+        for let file: u64 = 0; file < 8; file++ {
+            let pos: u64 = 63 - (rank * 8 + file)
+
+            let piece_index: u32 = 0
+            piece_index = if {
+                ((this.white_pawns >> pos) & 1) != 0   =>  1
+                ((this.white_rooks >> pos) & 1) != 0   =>  2
+                ((this.white_knights >> pos) & 1) != 0 =>  3
+                ((this.white_bishops >> pos) & 1) != 0 =>  4
+                ((this.white_queens >> pos) & 1) != 0  =>  5
+                ((this.white_king >> pos) & 1) != 0    =>  6
+
+                ((this.black_pawns >> pos) & 1) != 0   =>  7
+                ((this.black_rooks >> pos) & 1) != 0   =>  8
+                ((this.black_knights >> pos) & 1) != 0 =>  9
+                ((this.black_bishops >> pos) & 1) != 0 => 10
+                ((this.black_queens >> pos) & 1) != 0  => 11
+                ((this.black_king >> pos) & 1) != 0    => 12
+                else                                   =>  0
+
+                }
+            print("%c ", piece_chars[piece_index])
+        }
+        println("")
+    }
+}
