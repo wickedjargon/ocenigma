@@ -94,7 +94,7 @@ def Board::from_fen(fen: SV): Board {
                 'K' => board.place_piece(WhiteKing, Position(7 - x, 7 - y)),
                 'p' => board.place_piece(BlackPawn, Position(7 - x, 7 - y)),
                 'P' => board.place_piece(WhitePawn, Position(7 - x, 7 - y)),
-                else => { assert(false) }
+                else => { assert false }
             }
             x += 1
         }
