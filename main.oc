@@ -144,20 +144,20 @@ def Board::print_board(&this) {
 
             let piece_index: u32 = 0
             piece_index = if {
-                ((this.white_pawns >> pos) & 1) != 0  =>  1
-                ((this.white_rooks >> pos) & 1) != 0 =>   2
-                ((this.white_knights >> pos) & 1) != 0 => 3
-                ((this.white_bishops >> pos) & 1) != 0 => 4
-                ((this.white_queens >> pos) & 1) != 0 =>  5
-                ((this.white_king >> pos) & 1) != 0 =>    6
+                ((this.white_pawns >> pos) & 1) != 0   =>  1
+                ((this.white_rooks >> pos) & 1) != 0   =>  2
+                ((this.white_knights >> pos) & 1) != 0 =>  3
+                ((this.white_bishops >> pos) & 1) != 0 =>  4
+                ((this.white_queens >> pos) & 1) != 0  =>  5
+                ((this.white_king >> pos) & 1) != 0    =>  6
 
-                ((this.black_pawns >> pos) & 1) != 0  =>  7
-                ((this.black_rooks >> pos) & 1) != 0 =>   8
-                ((this.black_knights >> pos) & 1) != 0 => 9
+                ((this.black_pawns >> pos) & 1) != 0   =>  7
+                ((this.black_rooks >> pos) & 1) != 0   =>  8
+                ((this.black_knights >> pos) & 1) != 0 =>  9
                 ((this.black_bishops >> pos) & 1) != 0 => 10
-                ((this.black_queens >> pos) & 1) != 0 =>  11
-                ((this.black_king >> pos) & 1) != 0 =>    12
-                else => 0
+                ((this.black_queens >> pos) & 1) != 0  => 11
+                ((this.black_king >> pos) & 1) != 0    => 12
+                else                                   =>  0
 
                 }
             print("%c ", piece_chars[piece_index])
