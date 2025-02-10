@@ -1,9 +1,42 @@
 import std::sv::SV
 
+// Section: Other
+
+enum Player {
+    White,
+    Black,
+}
+
+enum Piece {
+    WhitePawn,
+    WhiteRook,
+    WhiteKnight,
+    WhiteBishop,
+    WhiteQueen,
+    WhiteKing,
+    BlackPawn,
+    BlackRook,
+    BlackKnight,
+    BlackBishop,
+    BlackQueen,
+    BlackKing,
+    EmptySquare,
+}
+
 enum EnPassant {
     False,
     True(position: Position)
 }
+
+// enum Move {
+//     RegularMove(fromPos: Position, toPos: Position),
+//     PromotionMove(fromPos: Position, toPos: Position, piece: Piece),
+//     Castle(fromPos: Position, toPos: Position),
+//     Resign,
+//     OfferDraw,
+// }
+
+// Section: Board
 
 struct Board {
     white_pawns: u64,
@@ -47,7 +80,7 @@ def Board::from_fen(fen: SV): Board {
             if piece.is_digit() {
                 x += piece.get_digit() as u64
                 continue;
-            } 
+            }
             match piece {
                 'r' => board.place_piece(BlackRook, Position(7 - x, 7 - y)),
                 'R' => board.place_piece(WhiteRook, Position(7 - x, 7 - y)),
@@ -69,21 +102,71 @@ def Board::from_fen(fen: SV): Board {
     return board
 }
 
-enum Piece {
-    WhitePawn,
-    WhiteRook,
-    WhiteKnight,
-    WhiteBishop,
-    WhiteQueen,
-    WhiteKing,
-    BlackPawn,
-    BlackRook,
-    BlackKnight,
-    BlackBishop,
-    BlackQueen,
-    BlackKing,
-    EmptySquare,
+def Board::get_piece_at_pos(&this, position: Position): Piece {
+    let mask: u64 = position.get_mask()
+    let nums = this as &u64
+    for let i = 0; i < 12; i++ {
+        if nums[i] & mask != 0 {
+            return i as Piece
+        }
+    }
+    return Piece::EmptySquare
 }
+
+def Board::move_piece(&this, origin: Position, destination: Position) {
+    let piece = .get_piece_at_pos(origin)
+    let nums = this as &u64
+    assert piece != EmptySquare
+    let value = nums[piece as u64]
+    value = value & ~origin.get_mask()
+    value = value | destination.get_mask()
+    nums[piece as u64] = value
+}
+
+def Board::place_piece(&this, piece: Piece, position: Position) {
+    let nums = this as &u64
+    let value = nums[piece as u64]
+    value = value | position.get_mask()
+    nums[piece as u64] = value
+}
+
+def Board::print_board(&this) {
+    let piece_chars = [
+        '-',
+        'P', 'R', 'N', 'B', 'Q', 'K',  // White pieces
+        'p', 'r', 'n', 'b', 'q', 'k'   // Black pieces
+    ]
+
+    // Iterate over each rank from 8 to 1
+    for let rank: u64 = 0; rank < 8; rank++ {
+        for let file: u64 = 0; file < 8; file++ {
+            let pos: u64 = 63 - (rank * 8 + file)
+
+            let piece_index: u32 = 0
+            piece_index = if {
+                ((this.white_pawns >> pos) & 1) != 0  =>  1
+                ((this.white_rooks >> pos) & 1) != 0 =>   2
+                ((this.white_knights >> pos) & 1) != 0 => 3
+                ((this.white_bishops >> pos) & 1) != 0 => 4
+                ((this.white_queens >> pos) & 1) != 0 =>  5
+                ((this.white_king >> pos) & 1) != 0 =>    6
+
+                ((this.black_pawns >> pos) & 1) != 0  =>  7
+                ((this.black_rooks >> pos) & 1) != 0 =>   8
+                ((this.black_knights >> pos) & 1) != 0 => 9
+                ((this.black_bishops >> pos) & 1) != 0 => 10
+                ((this.black_queens >> pos) & 1) != 0 =>  11
+                ((this.black_king >> pos) & 1) != 0 =>    12
+                else => 0
+
+                }
+            print("%c ", piece_chars[piece_index])
+        }
+        println("")
+    }
+}
+
+// Section: Position
 
 struct Position {
     x: u64,
@@ -100,18 +183,9 @@ def Position::from_sv(string: SV): Position {
     return Position((string[0] as u64 - 'a' as u64), string[1].get_digit() as u64 - 1)
 }
 
-enum Move {
-    RegularMove(fromPos: Position, toPos: Position),
-    PromotionMove(fromPos: Position, toPos: Position, piece: Piece),
-    Castle(fromPos: Position, toPos: Position),
-    Resign,
-    OfferDraw,
-}
+def Position::get_mask(this): u64 => 1u64 << (.y * 8 + 7 - .x)
 
-enum Player {
-    White,
-    Black,
-}
+// Section: GameState
 
 struct GameState {
     board: Board,
@@ -156,7 +230,7 @@ def GameState::from_fen(string: str): GameState {
         half_moves: half_moves,
         full_moves: full_moves,
     )
-    
+
 }
 
 def GameState::new_game(): GameState {
@@ -172,71 +246,7 @@ def GameState::move(&this, origin: Position, destination: Position) {
     }
 }
 
-def Position::get_mask(this): u64 => 1u64 << (.y * 8 + 7 - .x)
-
-def Board::get_piece_at_pos(&this, position: Position): Piece {
-    let mask: u64 = position.get_mask()
-    let nums = this as &u64
-    for let i = 0; i < 12; i++ {
-        if nums[i] & mask != 0 {
-            return i as Piece
-        }
-    }
-    return Piece::EmptySquare
-}
-
-def Board::move_piece(&this, origin: Position, destination: Position) {
-    let piece = .get_piece_at_pos(origin)
-    let nums = this as &u64
-    assert piece != EmptySquare
-    let value = nums[piece as u64]
-    value = value & ~origin.get_mask()
-    value = value | destination.get_mask()
-    nums[piece as u64] = value
-}
-
-def Board::place_piece(&this, piece: Piece, position: Position) {
-    let nums = this as &u64
-    let value = nums[piece as u64]
-    value = value | position.get_mask()
-    nums[piece as u64] = value
-}
-
-def Board::print_board(&this) {
-    let piece_chars = [
-        '-',
-        'P', 'R', 'N', 'B', 'Q', 'K',  // White pieces
-        'p', 'r', 'n', 'b', 'q', 'k'   // Black pieces
-    ]
-
-    // Iterate over each rank from 8 to 1
-    for let rank: u64 = 0; rank < 8; rank++ {
-        for let file: u64 = 0; file < 8; file++ {
-            let pos: u64 = 63 - (rank * 8 + file)
-
-            let piece_index: u32 = 0 
-            piece_index = if {
-                ((this.white_pawns >> pos) & 1) != 0  =>  1
-                ((this.white_rooks >> pos) & 1) != 0 =>   2
-                ((this.white_knights >> pos) & 1) != 0 => 3
-                ((this.white_bishops >> pos) & 1) != 0 => 4
-                ((this.white_queens >> pos) & 1) != 0 =>  5
-                ((this.white_king >> pos) & 1) != 0 =>    6
-
-                ((this.black_pawns >> pos) & 1) != 0  =>  7
-                ((this.black_rooks >> pos) & 1) != 0 =>   8
-                ((this.black_knights >> pos) & 1) != 0 => 9
-                ((this.black_bishops >> pos) & 1) != 0 => 10
-                ((this.black_queens >> pos) & 1) != 0 =>  11
-                ((this.black_king >> pos) & 1) != 0 =>    12
-                else => 0
-                
-                }
-            print("%c ", piece_chars[piece_index])
-        }
-        println("")
-    }
-}
+// Section: Main
 
 def main(argc: i32, argv: &str) {
     let game_state = GameState::new_game()
