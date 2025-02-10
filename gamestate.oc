@@ -2,16 +2,15 @@ import std::sv::SV
 import @position::*
 import @board::*
 
-// Section: Other
-
-
+// implement move like this?
 // enum Move {
 //     RegularMove(fromPos: Position, toPos: Position),
 //     PromotionMove(fromPos: Position, toPos: Position, piece: Piece),
 //     Castle(fromPos: Position, toPos: Position),
-//     Resign,
-//     OfferDraw,
 // }
+//
+// Draw/Resign are not moves here because they can
+// occur during the  opposite player's turn
 
 enum Player {
     White,
@@ -23,11 +22,6 @@ enum EnPassant {
     False,
     True(position: Position)
 }
-
-// Section: Board
-
-
-// Section: GameState
 
 struct GameState {
     board: Board,
