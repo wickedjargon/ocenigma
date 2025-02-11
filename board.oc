@@ -17,7 +17,48 @@ enum Piece {
     EmptySquare,
 }
 
+def Piece::get_color(&this): Player {
+    return match *this {
+        WhitePawn => White,
+        WhiteRook => White,
+        WhiteKnight => White,
+        WhiteBishop => White,
+        WhiteQueen => White,
+        WhiteKing => White
+        BlackPawn => Black,
+        BlackRook => Black,
+        BlackKnight => Black,
+        BlackBishop => Black,
+        BlackQueen => Black,
+        BlackKing => Black,
+        EmptySquare => std::panic("empty square")
+    }
+}
+
+def Piece::from_char(piece_char: char, player: Player): Piece {
+    return match piece_char {
+        'q' => match player {
+            White => WhiteQueen
+            Black => BlackQueen
+        }
+        'n' => match player {
+            White => WhiteKnight
+            Black => BlackKnight
+        }
+        'b' => match player {
+            White => WhiteBishop
+            Black => BlackBishop
+        }
+        'r' => match player {
+            White => WhiteRook
+            Black => BlackRook
+        }
+        else => std::panic("")
+    }
+}
+
 struct Board {
+    // pawns: [u64; 2],
     white_pawns: u64,
     white_rooks: u64,
     white_knights: u64,
