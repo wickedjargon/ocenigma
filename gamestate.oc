@@ -12,10 +12,6 @@ import @board::*
 // Draw/Resign are not moves here because they can
 // occur during the  opposite player's turn
 
-enum Player {
-    White,
-    Black,
-}
 
 
 enum EnPassant {
