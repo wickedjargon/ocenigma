@@ -1,5 +1,10 @@
 import std::sv::SV
 
+enum Player {
+    White,
+    Black,
+}
+
 struct Position {
     x: u64,
     y: u64,
