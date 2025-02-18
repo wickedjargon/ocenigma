@@ -1,27 +1,126 @@
-import @board::Board
+import @board::BitBoards
+import @position::Position
+import @utils::BitBoard
+import std::vec::Vec2i
+import @board::Piece
 
-typedef BitBoard = u64
-
-def rook_moves(bitboard: BitBoard): BitBoard {
-    // Find the position of the rook (assuming only one bit is set)
-    let pos = tzcnt(bitboard)
-    // Calculate row and column from the position
-    let row = pos / 8
-    let col = pos % 8
-    // Create a mask for the entire row
-    let row_mask = 0xFF << (row * 8)
-    // Create a mask for the entire column
-    let column_mask = 0x0101010101010101 << col
-    
-    // Combine row and column masks and exclude the current position
-    let total_mask = (row_mask | column_mask) & ~ (1 << pos)
-    return total_mask
+enum PieceColorAgnostic {
+    Pawn,
+    Rook,
+    Knight,
+    Bishop,
+    Queen,
+    King,
 }
 
-def main() {
-    let bitboard = 0u64 | 1  // Rook at a1 (square 0)
-    let moves = rook_moves(bitboard)
-    // Example usage: print the binary representation of moves
-    // (Assuming a function to print the bitboard exists)
-    print(moves)
+def piece_to_piece_agnostic(piece: Piece): PieceColorAgnostic {
+    match piece {
+    WhitePawn => return Pawn
+    WhiteRook => return Rook
+    WhiteKnight => return Knight
+    WhiteBishop => return Bishop
+    WhiteQueen => return Queen
+    WhiteKing => return King
+    BlackPawn => return Pawn
+    BlackRook => return Rook
+    BlackKnight => return Knight
+    BlackBishop => return Bishop
+    BlackQueen => return Queen
+    BlackKing => return King
+    EmptySquare => std::panic("")
+    }
+}
+
+// possible_moves[piece_type][starting_position] = list of positions
+let possible_moves: [[$[Position]; 64]; 6]
+
+def get_moves_for(piece: Piece, position: Position): $[Position] {
+    let piece_no_color = piece_to_piece_agnostic(piece) as u64
+    let x = position.x
+    let y = position.y
+    let row = 7u64 - y
+    let index = row * 8 + x
+    return possible_moves[piece_no_color][index]
+}
+
+def generate_all_moves() {
+    // Assuming the piece types are [Pawn, Knight, Bishop, Rook, Queen, King] with respective indices:
+    // Pawn: 0, Knight: 1, Bishop: 2, Rook: 3, Queen: 4, King: 5
+
+    let knight_offsets = $[Vec2i(-2, -1), Vec2i(-1, -2), Vec2i(1, -2), Vec2i(2, -1),
+                            Vec2i(2, 1), Vec2i(1, 2), Vec2i(-1, 2), Vec2i(-2, 1)]
+    let bishop_offsets = $[Vec2i(-1, -1), Vec2i(-1, 1), Vec2i(1, -1), Vec2i(1, 1)]
+    let rook_offsets = $[Vec2i(0, -1), Vec2i(0, 1), Vec2i(-1, 0), Vec2i(1, 0)]
+    let queen_offsets = $[Vec2i(0, -1), Vec2i(0, 1), Vec2i(-1, 0), Vec2i(1, 0), Vec2i(-1, -1), Vec2i(-1, 1), Vec2i(1, -1), Vec2i(1, 1)]
+
+    // We'll iterate over each of the 6 piece types and for each position from 0 to 63
+    for let piece_type = 0; piece_type < 6; piece_type++ {
+        let piece = piece_type as PieceColorAgnostic
+        for let start_pos = 0; start_pos < 64; start_pos++ {
+            let start_position = Position(start_pos as u64 % 8, 7 - start_pos as u64 / 8)
+            let moves: $[Position] = $[]
+
+            match piece {
+                // TODO: add pawn
+                Pawn => { // Pawn
+                }
+                Knight => { // Knight
+                    // Knights can move in "L" shapes (two by one offsets)
+
+                    for offset in knight_offsets.iter() {
+                        let new_x = start_position.x as i32 + offset.x
+                        let new_y = start_position.y as i32 + offset.y
+                        if new_x >= 0 and new_x < 8 and new_y >= 0 and new_y < 8 {
+                            moves.push(Position(new_x as u64, new_y as u64))
+                        }
+                    }
+                }
+                Bishop => { // Bishop
+                    // Bishops move diagonally across the board
+                    generate_sliding_moves(start_position, moves, bishop_offsets)
+                }
+                Rook => { // Rook
+                    // Rooks move in straight lines
+                    generate_sliding_moves(start_position, moves, rook_offsets)
+                }
+                Queen => { // Queen
+                    // Queens can move both diagonally and straight
+                    generate_sliding_moves(start_position, moves, queen_offsets)
+                }
+                King => { // King
+                    // Kings can move one square in any direction
+                    for let dx = -1; dx <= 1; dx++ {
+                        for let dy = -1; dy <= 1; dy++ {
+                            if dx != 0 or dy != 0 {
+                                let new_x = (start_position.x as i32 + dx)
+                                let new_y = (start_position.y as i32 + dy)
+                                if new_x >= 0 and new_x < 8 and new_y >= 0 and new_y < 8 {
+                                    moves.push(Position(new_x as u64, new_y as u64))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Assign the generated moves to the possible_moves for the specific piece_type and start position
+            possible_moves[piece_type][start_pos] = moves
+        }
+    }
+}
+
+def generate_sliding_moves(start_position: Position, moves: $[Position], directions: $[Vec2i]) {
+    // This function generates moves for sliding pieces like bishops, rooks, and queens
+    for offset in directions.iter() {
+        let x = start_position.x as i32
+        let y = start_position.y as i32
+        while true {
+            x += offset.x
+            y += offset.y
+            if x < 0 or x > 7 or y < 0 or y > 7 {
+                break
+            }
+            moves.push(Position(x as u64, y as u64))
+        }
+    }
 }

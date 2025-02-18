@@ -19,6 +19,15 @@ enum Piece {
     EmptySquare,
 }
 
+enum PieceColorAgnostic {
+    Rook,
+    Knight,
+    Bishop,
+    Queen,
+    King,
+    Pawn,
+}
+
 def Piece::get_color(&this): Player {
     return match *this {
         WhitePawn => White,

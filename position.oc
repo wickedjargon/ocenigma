@@ -5,6 +5,7 @@ enum Player {
     Black,
 }
 
+[formatting "(%zu, %zu)" "$.x, $.y"]
 struct Position {
     x: u64,
    y: u64,

@@ -1,17 +1,37 @@
 // TODOs
 // [ ] long algebraic notation string to move method
 import std::sv::SV
-
+import @movegen
 import @gamestate::*
+import @position::*
+import @movegen::PieceColorAgnostic
 
 def main(argc: i32, argv: &str) {
+    movegen::generate_all_moves()
     let game_state = GameState::new_game()!!
     game_state.board.print_board()
-    println("-----------------------------")
-    // game_state.is_legal(move: Move)
-    game_state.move(game_state.get_move(SV::from_str("e2e4")))
-    game_state.board.print_board()
-    game_state.move(game_state.get_move(SV::from_str("e7e5")))
-    println("-----------------------------")
-    game_state.board.print_board()
+    let white_rook_moves = movegen::get_moves_for(WhiteRook, Position(0, 0))
+    for move in white_rook_moves.iter() {
+                print(f"{move}, ")
+            }
+
+    // println("-----------------------------")
+    // // game_state.is_legal(move: Move)
+    // game_state.move(game_state.get_move(SV::from_str("e2e4")))
+    // game_state.board.print_board()
+    // game_state.move(game_state.get_move(SV::from_str("e7e5")))
+    // println("-----------------------------")
+    // game_state.board.print_board()
+    // for let piece_type = 0; piece_type < 6; piece_type++ {
+    //     let piece = piece_type as PieceColorAgnostic
+    //     for let start_pos = 0; start_pos < 64; start_pos++ {
+    //         let start_position = Position(start_pos as u64 % 8, 7 - start_pos as u64 / 8)
+    //         print(f"Piece: {piece}, {start_position}: ")
+    //         for pos in movegen::possible_moves[piece_type][start_pos].iter() {
+    //             print(f"{pos}, ")
+    //         }
+    //         println("")
+    //     }
+    // }
+
 }
