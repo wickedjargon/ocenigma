@@ -1,5 +1,7 @@
 import std::sv::SV
 import @position::*
+import @utils::*
+import std::result::Result
 
 enum Piece {
     WhitePawn,
@@ -58,47 +60,29 @@ def Piece::from_char(piece_char: char, player: Player): Piece {
 }
 
 struct Board {
-    // pawns: [u64; 2],
-    white_pawns: u64,
-    white_rooks: u64,
-    white_knights: u64,
-    white_bishops: u64,
-    white_queens: u64,
-    white_king: u64,
-
-    black_pawns: u64,
-    black_rooks: u64,
-    black_knights: u64,
-    black_bishops: u64,
-    black_queens: u64,
-    black_king: u64
+    bitboards: [BitBoard; 12]
 }
 
 def Board::empty_board(): Board {
-    return Board(
-        white_pawns:   0,
-        white_rooks:   0,
-        white_knights: 0,
-        white_bishops: 0,
-        white_queens:  0,
-        white_king:    0,
-        black_pawns:   0,
-        black_rooks:   0,
-        black_knights: 0,
-        black_bishops: 0,
-        black_queens:  0,
-        black_king:    0,
-    )
+    let board: Board
+    return board
 }
 
-def Board::from_fen(fen: SV): Board {
+def Board::place_piece(&this, piece: Piece, position: Position) {
+    let bitboards = this as &u64
+    let value = bitboards[piece as u64]
+    value = value | position.get_mask()
+    bitboards[piece as u64] = value
+}
+
+def Board::from_fen(fen: SV): Result<Board, str> {
     let board = Board::empty_board()
     for let y = 0u64; y < 8; y++ {
         let row = fen.chop_by_delim('/')
         let x = 0u64
         for piece in row.chars() {
             if piece.is_digit() {
-                x += piece.get_digit() as u64
+                x += piece.get_digit() as BitBoard
                 continue;
             }
             match piece {
@@ -114,12 +98,12 @@ def Board::from_fen(fen: SV): Board {
                 'K' => board.place_piece(WhiteKing, Position(7 - x, 7 - y)),
                 'p' => board.place_piece(BlackPawn, Position(7 - x, 7 - y)),
                 'P' => board.place_piece(WhitePawn, Position(7 - x, 7 - y)),
-                else => { assert false }
+                else => return Error("malformed fen")
             }
             x += 1
         }
     }
-    return board
+    return Ok(board)
 }
 
 def Board::get_piece_at_pos(&this, position: Position): Piece {
@@ -143,11 +127,15 @@ def Board::move_piece(&this, origin: Position, destination: Position) {
     bitboards[piece as u64] = value
 }
 
-def Board::place_piece(&this, piece: Piece, position: Position) {
-    let bitboards = this as &u64
-    let value = bitboards[piece as u64]
-    value = value | position.get_mask()
-    bitboards[piece as u64] = value
+// def Board::place_piece(&this, piece: Piece, position: Position) {
+//     let bitboards = this as &u64
+//     let value = bitboards[piece as u64]
+//     value = value | position.get_mask()
+//     bitboards[piece as u64] = value
+// }
+
+def Board::at(&this, piece: Piece): BitBoard {
+    return .bitboards[piece as u8]
 }
 
 def Board::print_board(&this) {
@@ -164,20 +152,20 @@ def Board::print_board(&this) {
 
             let piece_index: u32 = 0
             piece_index = if {
-                ((this.white_pawns >> pos) & 1) != 0   =>  1
-                ((this.white_rooks >> pos) & 1) != 0   =>  2
-                ((this.white_knights >> pos) & 1) != 0 =>  3
-                ((this.white_bishops >> pos) & 1) != 0 =>  4
-                ((this.white_queens >> pos) & 1) != 0  =>  5
-                ((this.white_king >> pos) & 1) != 0    =>  6
+                ((.at(WhitePawn) >> pos) & 1) != 0   => 1
+                ((.at(WhiteRook) >> pos) & 1) != 0   => 2
+                ((.at(WhiteKnight) >> pos) & 1) != 0 => 3
+                ((.at(WhiteBishop) >> pos) & 1) != 0 => 4
+                ((.at(WhiteQueen) >> pos) & 1) != 0  => 5
+                ((.at(WhiteKing) >> pos) & 1) != 0   => 6
 
-                ((this.black_pawns >> pos) & 1) != 0   =>  7
-                ((this.black_rooks >> pos) & 1) != 0   =>  8
-                ((this.black_knights >> pos) & 1) != 0 =>  9
-                ((this.black_bishops >> pos) & 1) != 0 => 10
-                ((this.black_queens >> pos) & 1) != 0  => 11
-                ((this.black_king >> pos) & 1) != 0    => 12
-                else                                   =>  0
+                ((.at(BlackPawn) >> pos) & 1) != 0   => 7
+                ((.at(BlackRook) >> pos) & 1) != 0   => 8
+                ((.at(BlackKnight) >> pos) & 1) != 0 => 9
+                ((.at(BlackBishop) >> pos) & 1) != 0 => 10
+                ((.at(BlackQueen) >> pos) & 1) != 0  => 11
+                ((.at(BlackKing) >> pos) & 1) != 0   => 12
+                else => 0
 
                 }
             print("%c ", piece_chars[piece_index])

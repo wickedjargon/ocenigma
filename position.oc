@@ -7,7 +7,7 @@ enum Player {
 
 struct Position {
     x: u64,
-    y: u64,
+   y: u64,
 }
 
 def Position::from_str(string: str): Position {
