@@ -59,24 +59,24 @@ def Piece::from_char(piece_char: char, player: Player): Piece {
     }
 }
 
-struct Board {
+struct BitBoards {
     bitboards: [BitBoard; 12]
 }
 
-def Board::empty_board(): Board {
-    let board: Board
+def BitBoards::empty_board(): BitBoards {
+    let board: BitBoards
     return board
 }
 
-def Board::place_piece(&this, piece: Piece, position: Position) {
+def BitBoards::place_piece(&this, piece: Piece, position: Position) {
     let bitboards = this as &u64
     let value = bitboards[piece as u64]
     value = value | position.get_mask()
     bitboards[piece as u64] = value
 }
 
-def Board::from_fen(fen: SV): Result<Board, str> {
-    let board = Board::empty_board()
+def BitBoards::from_fen(fen: SV): Result<BitBoards, str> {
+    let board = BitBoards::empty_board()
     for let y = 0u64; y < 8; y++ {
         let row = fen.chop_by_delim('/')
         let x = 0u64
@@ -106,7 +106,7 @@ def Board::from_fen(fen: SV): Result<Board, str> {
     return Ok(board)
 }
 
-def Board::get_piece_at_pos(&this, position: Position): Piece {
+def BitBoards::get_piece_at_pos(&this, position: Position): Piece {
     let mask: u64 = position.get_mask()
     let bitboards = this as &u64
     for let i = 0; i < 12; i++ {
@@ -117,7 +117,7 @@ def Board::get_piece_at_pos(&this, position: Position): Piece {
     return Piece::EmptySquare
 }
 
-def Board::move_piece(&this, origin: Position, destination: Position) {
+def BitBoards::move_piece(&this, origin: Position, destination: Position) {
     let piece = .get_piece_at_pos(origin)
     let bitboards = this as &u64
     assert piece != EmptySquare
@@ -134,11 +134,11 @@ def Board::move_piece(&this, origin: Position, destination: Position) {
 //     bitboards[piece as u64] = value
 // }
 
-def Board::at(&this, piece: Piece): BitBoard {
+def BitBoards::at(&this, piece: Piece): BitBoard {
     return .bitboards[piece as u8]
 }
 
-def Board::print_board(&this) {
+def BitBoards::print_board(&this) {
     let piece_chars = [
         '-',
         'P', 'R', 'N', 'B', 'Q', 'K',  // White pieces

@@ -1,0 +1,27 @@
+import @board::Board
+
+typedef BitBoard = u64
+
+def rook_moves(bitboard: BitBoard): BitBoard {
+    // Find the position of the rook (assuming only one bit is set)
+    let pos = tzcnt(bitboard)
+    // Calculate row and column from the position
+    let row = pos / 8
+    let col = pos % 8
+    // Create a mask for the entire row
+    let row_mask = 0xFF << (row * 8)
+    // Create a mask for the entire column
+    let column_mask = 0x0101010101010101 << col
+    
+    // Combine row and column masks and exclude the current position
+    let total_mask = (row_mask | column_mask) & ~ (1 << pos)
+    return total_mask
+}
+
+def main() {
+    let bitboard = 0u64 | 1  // Rook at a1 (square 0)
+    let moves = rook_moves(bitboard)
+    // Example usage: print the binary representation of moves
+    // (Assuming a function to print the bitboard exists)
+    print(moves)
+}

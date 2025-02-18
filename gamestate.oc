@@ -23,7 +23,7 @@ enum EnPassant {
 }
 
 struct GameState {
-    board: Board,
+    board: BitBoards,
     player: Player,
     white_oo: bool,
     white_ooo: bool,
@@ -145,7 +145,7 @@ def GameState::from_fen(string: str): Result<GameState, str> {
         //     Ok(val) => val,
         //     Err(err) => { return Err(err) },
         // },
-        board: Board::from_fen(fen_board)!,
+        board: BitBoards::from_fen(fen_board)!,
         player: player,
         white_oo: fen_castling.contains('K'),
         white_ooo: fen_castling.contains('Q'),
