@@ -1,8 +1,7 @@
-import @position::*
-import @board::*
-import std::sv::SV
+import @bitboards::*
 import @utils::*
 import std::result::Result
+import std::sv::SV
 
 // let possible_moves: [[&Vector<Position>; 64]; 6]
 
@@ -22,7 +21,7 @@ enum EnPassant {
     True(position: Position)
 }
 
-struct GameState {
+struct Board {
     board: BitBoards,
     player: Player,
     white_oo: bool,
@@ -41,59 +40,7 @@ enum Move {
     PromotionMove(promoted_piece: Piece),
 }
 
-import std::vec::Vec2i
-
-// let a: Vec2i = Vec2i(0, 1)
-
-let piece_offsets_map: [$[Vec2i]; 6]
-
-// def init_piece_offsets() {
-//     // White Pawn
-//     piece_offsets_map[0] = $[Vec2i(1, 0), Vec2i(1, 1), Vec2i(1, -1)] // Forward, capture diagonally
-//     // White Rook
-//     piece_offsets_map[1] = $[Vec2i(0, 1), Vec2i(0, -1), Vec2i(1, 0), Vec2i(-1, 0)] // Vertical and horizontal
-//     // White Knight
-//     piece_offsets_map[2] = $[Vec2i(2, 1), Vec2i(2, -1), Vec2i(-2, 1), Vec2i(-2, -1), 
-//                          Vec2i(1, 2), Vec2i(1, -2), Vec2i(-1, 2), Vec2i(-1, -2)] // L-shape
-//     // White Bishop
-//     piece_offsets_map[3] = $[Vec2i(1, 1), Vec2i(1, -1), Vec2i(-1, 1), Vec2i(-1, -1)] // Diagonals
-//     // White Queen
-//     piece_offsets_map[4] = $[Vec2i(0, 1), Vec2i(0, -1), Vec2i(1, 0), Vec2i(-1, 0), 
-//                          Vec2i(1, 1), Vec2i(1, -1), Vec2i(-1, 1), Vec2i(-1, -1)] // Rook + Bishop
-//     // White King
-//     piece_offsets_map[5] = $[Vec2i(0, 1), Vec2i(0, -1), Vec2i(1, 0), Vec2i(-1, 0), 
-//                          Vec2i(1, 1), Vec2i(1, -1), Vec2i(-1, 1), Vec2i(-1, -1)] // One square in any direction
-
-//     // Black Pawn
-//     piece_offsets_map[6] = $[Vec2i(-1, 0), Vec2i(-1, 1), Vec2i(-1, -1)] // Forward, capture diagonally
-//     // Black Rook
-//     piece_offsets_map[7] = $[Vec2i(0, 1), Vec2i(0, -1), Vec2i(1, 0), Vec2i(-1, 0)] // Vertical and horizontal
-//     // Black Knight
-//     piece_offsets_map[8] = $[Vec2i(2, 1), Vec2i(2, -1), Vec2i(-2, 1), Vec2i(-2, -1), 
-//                          Vec2i(1, 2), Vec2i(1, -2), Vec2i(-1, 2), Vec2i(-1, -2)] // L-shape
-//     // Black Bishop
-//     piece_offsets_map[9] = $[Vec2i(1, 1), Vec2i(1, -1), Vec2i(-1, 1), Vec2i(-1, -1)] // Diagonals
-//     // Black Queen
-//     piece_offsets_map[10] = $[Vec2i(0, 1), Vec2i(0, -1), Vec2i(1, 0), Vec2i(-1, 0), 
-//                           Vec2i(1, 1), Vec2i(1, -1), Vec2i(-1, 1), Vec2i(-1, -1)] // Rook + Bishop
-//     // Black King
-//     piece_offsets_map[11] = $[Vec2i(0, 1), Vec2i(0, -1), Vec2i(1, 0), Vec2i(-1, 0), 
-//                           Vec2i(1, 1), Vec2i(1, -1), Vec2i(-1, 1), Vec2i(-1, -1)] // One square in any direction
-// }
-
-// def GameState::is_legal(&this, move: Move): bool {
-//     let piece = this.board.get_piece_at_pos(move.from_pos)
-//     if piece == EmptySquare or piece.get_color() != .player  {
-//         return false
-//     }
-//     match piece {
-//         WhiteRook => {
-//             let piece_offsets = piece_offsets_map[piece as u16]
-//         }
-//     }
-// }
-
-def GameState::get_move(&this, uci_move: SV): Move {
+def Board::get_move(&this, uci_move: SV): Move {
     let from_pos = Position::from_sv(uci_move.chop_left(2))
     let to_pos = Position::from_sv(uci_move.chop_left(2))
     if uci_move.len > 0 {
@@ -103,7 +50,7 @@ def GameState::get_move(&this, uci_move: SV): Move {
     return RegularMove(from_pos, to_pos)
 }
 
-def GameState::move(&this, move: Move) {
+def Board::move(&this, move: Move) {
     match move {
         RegularMove(from_pos, to_pos) => .board.move_piece(from_pos, to_pos)
         PromotionMove(from_pos, to_pos, promoted_piece) => {
@@ -120,7 +67,7 @@ def GameState::move(&this, move: Move) {
 
 
 
-def GameState::from_fen(string: str): Result<GameState, str> {
+def Board::from_fen(string: str): Result<Board, str> {
     let sv = SV::from_str(string)
     let fen_board = sv.chop_by_delim(' ')
     let fen_player = sv.chop_by_delim(' ')
@@ -140,7 +87,7 @@ def GameState::from_fen(string: str): Result<GameState, str> {
         else => EnPassant::True(Position::from_sv(fen_en_passant))
     }
 
-    return Ok(GameState(
+    return Ok(Board(
         // board: match  Board::from_fen(fen_board) {
         //     Ok(val) => val,
         //     Err(err) => { return Err(err) },
@@ -157,15 +104,31 @@ def GameState::from_fen(string: str): Result<GameState, str> {
     ))
 }
 
-def GameState::new_game(): Result<GameState, str> {
-    return GameState::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+def Board::new_game(): Result<Board, str> {
+    return Board::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
 }
 
-// def GameState::move_(&this, origin: Position, destination: Position) {
-//     .board.move_piece(origin, destination)
-//     if .player == Black {
-//         .player = White
-//     } else {
-//         .player = Black
-//     }
-// }
+
+
+enum Player {
+    White,
+    Black,
+}
+
+[formatting "(%zu, %zu)" "$.x, $.y"]
+struct Position {
+    x: u64,
+   y: u64,
+}
+
+def Position::from_str(string: str): Position {
+    assert string.len() == 2
+    return Position((string[0] as u64 - 'a' as u64), string[1].get_digit() as u64 - 1)
+}
+
+def Position::from_sv(string: SV): Position {
+    assert string.len == 2
+    return Position((string[0] as u64 - 'a' as u64), string[1].get_digit() as u64 - 1)
+}
+
+def Position::get_mask(this): u64 => 1u64 << (.y * 8 + 7 - .x)

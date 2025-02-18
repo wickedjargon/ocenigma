@@ -1,8 +1,8 @@
-import @board::BitBoards
-import @position::Position
+import @bitboards::BitBoards
+import @board::Position
 import @utils::BitBoard
 import std::vec::Vec2i
-import @board::Piece
+import @bitboards::Piece
 
 enum PieceColorAgnostic {
     Pawn,
@@ -121,6 +121,36 @@ def generate_sliding_moves(start_position: Position, moves: $[Position], directi
                 break
             }
             moves.push(Position(x as u64, y as u64))
+        }
+    }
+}
+
+def generate_pawn_moves(start_position: Position, moves: $[Position], is_white: bool) {
+    let direction: i32 = if is_white then -1 else 1
+    let start_row: u64 = if is_white then 6 else 1
+
+    // One move forward
+    let forward_x = start_position.x
+    let forward_y = start_position.y as i32 + direction
+    if forward_y >= 0 and forward_y < 8 {
+        moves.push(Position(forward_x, forward_y as u64))
+    }
+
+    // Double move forward from start position
+    if start_position.y == start_row {
+        let double_forward_y = forward_y + direction
+        if double_forward_y >= 0 and double_forward_y < 8 {
+            moves.push(Position(forward_x, double_forward_y as u64))
+        }
+    }
+
+    // Captures
+    let capture_offsets = $[Vec2i(-1, direction), Vec2i(1, direction)]
+    for offset in capture_offsets.iter() {
+        let capture_x = start_position.x as i32 + offset.x
+        let capture_y = start_position.y as i32 + offset.y
+        if capture_x >= 0 and capture_x < 8 and capture_y >= 0 and capture_y < 8 {
+            moves.push(Position(capture_x as u64, capture_y as u64))
         }
     }
 }
