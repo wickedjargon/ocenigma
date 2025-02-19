@@ -1,20 +1,7 @@
 import @bitboards::*
-import @utils::*
 import std::result::Result
 import std::sv::SV
 
-// let possible_moves: [[&Vector<Position>; 64]; 6]
-
-
-// implement move like this?
-// enum Move {
-//     RegularMove(fromPos: Position, toPos: Position),
-//     PromotionMove(fromPos: Position, toPos: Position, piece: Piece),
-//     Castle(fromPos: Position, toPos: Position),
-// }
-//
-// Draw/Resign are not moves here because they can
-// occur during the  opposite player's turn
 
 enum EnPassant {
     False,
@@ -40,11 +27,39 @@ enum Move {
     PromotionMove(promoted_piece: Piece),
 }
 
+def Board::print_board(&this) {
+    let bitboards = .board
+    .board.print_board()
+
+    // Print the additional parameters
+    let player_to_move = if .player == White then "White" else "Black"
+    println("Player to move: %s", player_to_move)
+
+    let white_oo_status = if .white_oo then "Yes" else "No"
+    let white_ooo_status = if .white_ooo then "Yes" else "No"
+    let black_oo_status = if .black_oo then "Yes" else "No"
+    let black_ooo_status = if .black_ooo then "Yes" else "No"
+
+    println("Castling rights:")
+    println("  White kingside: %s", white_oo_status)
+    println("  White queenside: %s", white_ooo_status)
+    println("  Black kingside: %s", black_oo_status)
+    println("  Black queenside: %s", black_ooo_status)
+
+    match .en_passant {
+        EnPassant::False => println("En passant: None"),
+        EnPassant::True(position) => println("En passant: (%zu, %zu)", position.x, position.y)
+    }
+
+    println("Half-move clock: %zu", .half_moves)
+    println("Full-move number: %zu", .full_moves)
+}
+
 def Board::get_move(&this, uci_move: SV): Move {
     let from_pos = Position::from_sv(uci_move.chop_left(2))
     let to_pos = Position::from_sv(uci_move.chop_left(2))
     if uci_move.len > 0 {
-        let promoted_piece = Piece::from_char(uci_move[0], this.player)
+        let promoted_piece = Piece::from_char(uci_move[0], .player)
         return PromotionMove(from_pos, to_pos, promoted_piece)
     }
     return RegularMove(from_pos, to_pos)
@@ -54,8 +69,8 @@ def Board::move(&this, move: Move) {
     match move {
         RegularMove(from_pos, to_pos) => .board.move_piece(from_pos, to_pos)
         PromotionMove(from_pos, to_pos, promoted_piece) => {
-            this.board.move_piece(from_pos, to_pos)
-            this.board.place_piece(promoted_piece, to_pos)
+            .board.move_piece(from_pos, to_pos)
+            .board.place_piece(promoted_piece, to_pos)
         }
     }
     if .player == Black {
@@ -64,8 +79,6 @@ def Board::move(&this, move: Move) {
         .player = Black
     }
 }
-
-
 
 def Board::from_fen(string: str): Result<Board, str> {
     let sv = SV::from_str(string)
@@ -108,8 +121,6 @@ def Board::new_game(): Result<Board, str> {
     return Board::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
 }
 
-
-
 enum Player {
     White,
     Black,
@@ -131,4 +142,7 @@ def Position::from_sv(string: SV): Position {
     return Position((string[0] as u64 - 'a' as u64), string[1].get_digit() as u64 - 1)
 }
 
-def Position::get_mask(this): u64 => 1u64 << (.y * 8 + 7 - .x)
+
+def Position::get_mask(this): u64 => 1u64 << (.y * 8 + .x)
+
+

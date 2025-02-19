@@ -1,17 +1,10 @@
-// TODOs
-// [ ] long algebraic notation string to move method
 import std::sv::SV
 import @movegen
-import @board::*
+import @board::{Board, Position}
+import @bitboards::{BitBoards, Piece}
 import @movegen::PieceColorAgnostic
 
 def main(argc: i32, argv: &str) {
-    movegen::generate_all_moves()
-    let game_state = Board::new_game()!!
-    game_state.board.print_board()
-    let white_rook_moves = movegen::get_moves_for(WhiteRook, Position(0, 0))
-    for move in white_rook_moves.iter() {
-                print(f"{move}, ")
-            }
-    println("")
+    let board = Board::new_game()!!
+    board.print_board()
 }

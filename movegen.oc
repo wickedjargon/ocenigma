@@ -1,8 +1,9 @@
 import @bitboards::BitBoards
 import @board::Position
-import @utils::BitBoard
 import std::vec::Vec2i
 import @bitboards::Piece
+
+let possible_moves: [[$[Position]; 64]; 6]
 
 enum PieceColorAgnostic {
     Pawn,
@@ -32,7 +33,6 @@ def piece_to_piece_agnostic(piece: Piece): PieceColorAgnostic {
 }
 
 // possible_moves[piece_type][starting_position] = list of positions
-let possible_moves: [[$[Position]; 64]; 6]
 
 def get_moves_for(piece: Piece, position: Position): $[Position] {
     let piece_no_color = piece_to_piece_agnostic(piece) as u64
