@@ -3,10 +3,11 @@ import @board::Position
 import std::vec::Vec2i
 import @bitboards::Piece
 
-let possible_moves: [[$[Position]; 64]; 6]
+let possible_moves: [[$[Position]; 64]; 7]
 
-enum PieceColorAgnostic {
-    Pawn,
+enum MoveGenPiece {
+    BlackPawn,
+    WhitePawn,
     Rook,
     Knight,
     Bishop,
@@ -14,15 +15,15 @@ enum PieceColorAgnostic {
     King,
 }
 
-def piece_to_piece_agnostic(piece: Piece): PieceColorAgnostic {
+def piece_to_piece_agnostic(piece: Piece): MoveGenPiece {
     match piece {
-    WhitePawn => return Pawn
+    WhitePawn => return WhitePawn
     WhiteRook => return Rook
     WhiteKnight => return Knight
     WhiteBishop => return Bishop
     WhiteQueen => return Queen
     WhiteKing => return King
-    BlackPawn => return Pawn
+    BlackPawn => return BlackPawn
     BlackRook => return Rook
     BlackKnight => return Knight
     BlackBishop => return Bishop
@@ -38,7 +39,7 @@ def get_moves_for(piece: Piece, position: Position): $[Position] {
     let piece_no_color = piece_to_piece_agnostic(piece) as u64
     let x = position.x
     let y = position.y
-    let row = 7u64 - y
+    let row = y
     let index = row * 8 + x
     return possible_moves[piece_no_color][index]
 }
@@ -54,15 +55,19 @@ def generate_all_moves() {
     let queen_offsets = $[Vec2i(0, -1), Vec2i(0, 1), Vec2i(-1, 0), Vec2i(1, 0), Vec2i(-1, -1), Vec2i(-1, 1), Vec2i(1, -1), Vec2i(1, 1)]
 
     // We'll iterate over each of the 6 piece types and for each position from 0 to 63
-    for let piece_type = 0; piece_type < 6; piece_type++ {
-        let piece = piece_type as PieceColorAgnostic
+    for let piece_type = 0; piece_type < 7; piece_type++ {
+        let piece = piece_type as MoveGenPiece
         for let start_pos = 0; start_pos < 64; start_pos++ {
-            let start_position = Position(start_pos as u64 % 8, 7 - start_pos as u64 / 8)
+            let start_position = Position(start_pos as u64 % 8, start_pos as u64 / 8)
             let moves: $[Position] = $[]
 
             match piece {
                 // TODO: add pawn
-                Pawn => { // Pawn
+                WhitePawn => { // Pawn
+                    generate_pawn_moves(start_position, moves, true)
+                }
+                BlackPawn => {
+                    generate_pawn_moves(start_position, moves, false)
                 }
                 Knight => { // Knight
                     // Knights can move in "L" shapes (two by one offsets)
@@ -126,8 +131,8 @@ def generate_sliding_moves(start_position: Position, moves: $[Position], directi
 }
 
 def generate_pawn_moves(start_position: Position, moves: $[Position], is_white: bool) {
-    let direction: i32 = if is_white then -1 else 1
-    let start_row: u64 = if is_white then 6 else 1
+    let direction: i32 = if is_white then 1 else -1
+    let start_row: u64 = if is_white then 1 else 6
 
     // One move forward
     let forward_x = start_position.x
@@ -145,12 +150,33 @@ def generate_pawn_moves(start_position: Position, moves: $[Position], is_white: 
     }
 
     // Captures
-    let capture_offsets = $[Vec2i(-1, direction), Vec2i(1, direction)]
-    for offset in capture_offsets.iter() {
+    let capture_offsets = [Vec2i(-1, direction), Vec2i(1, direction)]
+    for let i = 0; i < 2; i++ {
+        let offset = capture_offsets[i]
         let capture_x = start_position.x as i32 + offset.x
         let capture_y = start_position.y as i32 + offset.y
         if capture_x >= 0 and capture_x < 8 and capture_y >= 0 and capture_y < 8 {
             moves.push(Position(capture_x as u64, capture_y as u64))
         }
     }
+}
+
+def print_gen_moves() {
+    for let piece_type = 0; piece_type < 7; piece_type++ {
+        let piece = piece_type as MoveGenPiece
+        for let start_pos = 0; start_pos < 64; start_pos++ {
+            let start_position = Position(start_pos as u64 % 8, start_pos as u64 / 8)
+            print(f"Piece: {piece}, {start_position}: ")
+            for pos in possible_moves[piece_type][start_pos].iter() {
+                print(f"{pos}, ")
+            }
+            println("")
+        }
+    }
+}
+
+
+def main() {
+    generate_all_moves()
+    print_gen_moves()
 }
