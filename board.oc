@@ -142,7 +142,4 @@ def Position::from_sv(string: SV): Position {
     return Position((string[0] as u64 - 'a' as u64), string[1].get_digit() as u64 - 1)
 }
 
-
 def Position::get_mask(this): u64 => 1u64 << (.y * 8 + .x)
-
-
