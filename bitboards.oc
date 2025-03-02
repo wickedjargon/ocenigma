@@ -1,0 +1,312 @@
+import std::result::Result
+import @board::Player
+import @board::Position
+import std::sv::SV
+
+typedef BitBoard = u64
+
+enum Piece {
+    WhitePawn,
+    WhiteRook,
+    WhiteKnight,
+    WhiteBishop,
+    WhiteQueen,
+    WhiteKing,
+    BlackPawn,
+    BlackRook,
+    BlackKnight,
+    BlackBishop,
+    BlackQueen,
+    BlackKing,
+    EmptySquare,
+}
+
+enum PieceColorAgnostic {
+    Pawn,
+    Rook,
+    Knight,
+    Bishop,
+    Queen,
+    King,
+}
+
+def Piece::get_color(&this): Player {
+    return match *this {
+        WhitePawn => White,
+        WhiteRook => White,
+        WhiteKnight => White,
+        WhiteBishop => White,
+        WhiteQueen => White,
+        WhiteKing => White
+        BlackPawn => Black,
+        BlackRook => Black,
+        BlackKnight => Black,
+        BlackBishop => Black,
+        BlackQueen => Black,
+        BlackKing => Black,
+        EmptySquare => std::panic("empty square")
+    }
+}
+
+def Piece::from_char(piece_char: char, player: Player): Piece {
+    return match piece_char {
+        'q' => match player {
+            White => WhiteQueen
+            Black => BlackQueen
+        }
+        'n' => match player {
+            White => WhiteKnight
+            Black => BlackKnight
+        }
+        'b' => match player {
+            White => WhiteBishop
+            Black => BlackBishop
+        }
+        'r' => match player {
+            White => WhiteRook
+            Black => BlackRook
+        }
+        else => std::panic("")
+    }
+}
+
+struct BitBoards {
+    bitboards: [BitBoard; 12]
+}
+
+def BitBoards::new(): BitBoards {
+    let board: BitBoards
+    return board
+}
+
+def BitBoards::print_board(&this) {
+    let piece_chars = [
+        '-',
+        'P', 'R', 'N', 'B', 'Q', 'K',  // White pieces
+        'p', 'r', 'n', 'b', 'q', 'k'   // Black pieces
+    ]
+
+    // Iterate over each rank from 8 to 1
+    for let rank: i64 = 7; rank >= 0; rank-- {
+        for let file: u64 = 0; file < 8; file++ {
+            let pos: u64 = (rank as u64 * 8 + file)
+
+            let piece_index: u32 = 0
+            piece_index = if {
+                ((.at(WhitePawn) >> pos) & 1) != 0   => 1
+                ((.at(WhiteRook) >> pos) & 1) != 0   => 2
+                ((.at(WhiteKnight) >> pos) & 1) != 0 => 3
+                ((.at(WhiteBishop) >> pos) & 1) != 0 => 4
+                ((.at(WhiteQueen) >> pos) & 1) != 0  => 5
+                ((.at(WhiteKing) >> pos) & 1) != 0   => 6
+
+                ((.at(BlackPawn) >> pos) & 1) != 0   => 7
+                ((.at(BlackRook) >> pos) & 1) != 0   => 8
+                ((.at(BlackKnight) >> pos) & 1) != 0 => 9
+                ((.at(BlackBishop) >> pos) & 1) != 0 => 10
+                ((.at(BlackQueen) >> pos) & 1) != 0  => 11
+                ((.at(BlackKing) >> pos) & 1) != 0   => 12
+                else => 0
+
+                }
+            print("%c ", piece_chars[piece_index])
+        }
+        println("")
+    }
+}
+
+def BitBoards::place_piece(&this, piece: Piece, position: Position) {
+    let bitboards = this as &u64
+    let value = bitboards[piece as u64]
+    value = value | position.get_mask() // done
+    bitboards[piece as u64] = value // done
+}
+
+def BitBoards::from_fen(fen: SV): Result<BitBoards, str> {
+    let board = BitBoards::new()
+    for let y = 0u64; y < 8; y++ {
+        let row = fen.chop_by_delim('/')
+        let x = 0u64
+        for piece in row.chars() {
+            if piece.is_digit() {
+                x += piece.get_digit() as BitBoard
+                continue;
+            }
+            match piece {
+                'r' => board.place_piece(BlackRook, Position(x, 7 - y)),
+                'R' => board.place_piece(WhiteRook, Position(x, 7 - y)),
+                'n' => board.place_piece(BlackKnight, Position(x, 7 - y)),
+                'N' => board.place_piece(WhiteKnight, Position(x, 7 - y)),
+                'b' => board.place_piece(BlackBishop, Position(x, 7 - y)),
+                'B' => board.place_piece(WhiteBishop, Position(x, 7 - y)),
+                'q' => board.place_piece(BlackQueen, Position(x, 7 - y)),
+                'Q' => board.place_piece(WhiteQueen, Position(x, 7 - y)),
+                'k' => board.place_piece(BlackKing, Position(x, 7 - y)),
+                'K' => board.place_piece(WhiteKing, Position(x, 7 - y)),
+                'p' => board.place_piece(BlackPawn, Position(x, 7 - y)),
+                'P' => board.place_piece(WhitePawn, Position(x, 7 - y)),
+                else => return Error("malformed fen")
+            }
+            x += 1
+        }
+    }
+    return Ok(board)
+}
+
+def BitBoards::get_piece_at_pos(&this, position: Position): Piece {
+    let mask: u64 = position.get_mask()
+    let bitboards = this as &u64
+    for let i = 0; i < 12; i++ {
+        if bitboards[i] & mask != 0 {
+            return i as Piece
+        }
+    }
+    return Piece::EmptySquare
+}
+
+def BitBoards::move_piece(&this, origin: Position, destination: Position) {
+    let piece = .get_piece_at_pos(origin)
+    let bitboards = this as &u64
+    assert piece != EmptySquare
+    let value = bitboards[piece as u64]
+    value = value & ~origin.get_mask()
+    value = value | destination.get_mask()
+    bitboards[piece as u64] = value
+}
+
+def BitBoards::at(&this, piece: Piece): BitBoard {
+    return .bitboards[piece as u8]
+}
+
+def test_get_color() {
+    // Test white pieces
+    let piece1 = Piece::WhitePawn
+    let color1 = piece1.get_color()
+    assert color1 == White, "WhitePawn should return White"
+
+    let piece2 = Piece::WhiteRook
+    let color2 = piece2.get_color()
+    assert color2 == White, "WhiteRook should return White"
+
+    let piece3 = Piece::WhiteKnight
+    let color3 = piece3.get_color()
+    assert color3 == White, "WhiteKnight should return White"
+
+    let piece4 = Piece::WhiteBishop
+    let color4 = piece4.get_color()
+    assert color4 == White, "WhiteBishop should return White"
+
+    let piece5 = Piece::WhiteQueen
+    let color5 = piece5.get_color()
+    assert color5 == White, "WhiteQueen should return White"
+
+    let piece6 = Piece::WhiteKing
+    let color6 = piece6.get_color()
+    assert color6 == White, "WhiteKing should return White"
+
+    // Test black pieces
+    let piece7 = Piece::BlackPawn
+    let color7 = piece7.get_color()
+    assert color7 == Black, "BlackPawn should return Black"
+
+    let piece8 = Piece::BlackRook
+    let color8 = piece8.get_color()
+    assert color8 == Black, "BlackRook should return Black"
+
+    let piece9 = Piece::BlackKnight
+    let color9 = piece9.get_color()
+    assert color9 == Black, "BlackKnight should return Black"
+
+    let piece10 = Piece::BlackBishop
+    let color10 = piece10.get_color()
+    assert color10 == Black, "BlackBishop should return Black"
+
+    let piece11 = Piece::BlackQueen
+    let color11 = piece11.get_color()
+    assert color11 == Black, "BlackQueen should return Black"
+
+    let piece12 = Piece::BlackKing
+    let color12 = piece12.get_color()
+    assert color12 == Black, "BlackKing should return Black"
+
+    println("All get_color tests passed!")
+}
+
+def test_from_char() {
+    // Test for White Queen
+    let piece1 = Piece::from_char('q', White)
+    assert piece1 == WhiteQueen, "Character 'q' with White player should return WhiteQueen"
+
+    // Test for Black Queen
+    let piece2 = Piece::from_char('q', Black)
+    assert piece2 == BlackQueen, "Character 'q' with Black player should return BlackQueen"
+
+    // Test for White Knight
+    let piece3 = Piece::from_char('n', White)
+    assert piece3 == WhiteKnight, "Character 'n' with White player should return WhiteKnight"
+
+    // Test for Black Knight
+    let piece4 = Piece::from_char('n', Black)
+    assert piece4 == BlackKnight, "Character 'n' with Black player should return BlackKnight"
+
+    // Test for White Bishop
+    let piece5 = Piece::from_char('b', White)
+    assert piece5 == WhiteBishop, "Character 'b' with White player should return WhiteBishop"
+
+    // Test for Black Bishop
+    let piece6 = Piece::from_char('b', Black)
+    assert piece6 == BlackBishop, "Character 'b' with Black player should return BlackBishop"
+
+    // Test for White Rook
+    let piece7 = Piece::from_char('r', White)
+    assert piece7 == WhiteRook, "Character 'r' with White player should return WhiteRook"
+
+    // Test for Black Rook
+    let piece8 = Piece::from_char('r', Black)
+    assert piece8 == BlackRook, "Character 'r' with Black player should return BlackRook"
+
+    println("All from_char tests passed!")
+}
+
+def test_place_piece() {
+    // Create a new instance of BitBoards
+    let bitboards = BitBoards::new()
+
+    // Sample test for placing a White Knight on position e4 (assuming get_mask returns a bitmask)
+    let position = Position(4, 3) // e4 in 0-indexed coordinate system
+    let initial_value = bitboards.at(WhiteKnight)
+    let expected_mask = position.get_mask()
+
+    // Place the White Knight on e4
+    bitboards.place_piece(WhiteKnight, position)
+
+    // Verify that the bitboard has been updated correctly
+    let updated_value = bitboards.at(WhiteKnight)
+    assert updated_value == (initial_value | expected_mask), "WhiteKnight should be placed on e4"
+
+    // Further tests could involve placing other pieces and verifying individual bit settings
+    let position2 = Position(0, 0) // a1
+    bitboards.place_piece(WhiteRook, position2)
+    let updated_value2 = bitboards.at(WhiteRook)
+    assert updated_value2 == position2.get_mask(), "WhiteRook should be placed on a1"
+
+    println("All place_piece tests passed!")
+}
+
+def test_rook_at_a1_corrected() {
+    let fen_str = "R7/8/8/8/8/8/8/8"
+    let fen_sv = SV::from_str(fen_str)
+
+    let result = BitBoards::from_fen(fen_sv)!!
+
+    let white_rook_board = result.bitboards[Piece::WhiteRook as u64]
+    println(f"White Rook Bitboard: {white_rook_board}")
+    assert white_rook_board == 1, "Expected bitboard value to be 1 for Rook at A1"
+}
+
+def main() {
+    test_get_color()
+    test_from_char()
+    test_place_piece()
+    test_rook_at_a1_corrected()
+}
